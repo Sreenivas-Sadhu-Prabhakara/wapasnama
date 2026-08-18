@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wapasnama — supplier claim register</title>
+<meta name="description" content="Log every short, damaged, wrong-rate or missing-scheme claim against a supplier and track credit-note promised vs received. Stop the quiet leaks.">
+<style>
+  :root{--bg:#f8f3f3;--card:#fff;--ink:#25161a;--muted:#6e5257;--brand:#b23a48;--brand-ink:#7d222d;--line:#ecdcde;--accent:#f6e8ea}
+  @media (prefers-color-scheme:dark){:root{--bg:#160f10;--card:#201719;--ink:#f0e2e4;--muted:#bb9a9e;--brand:#e06975;--brand-ink:#f3c9ce;--line:#2c2022;--accent:#241a1c}}
+  *{box-sizing:border-box}html,body{margin:0}
+  body{background:var(--bg);color:var(--ink);font:16px/1.55 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+  .wrap{max-width:960px;margin:0 auto;padding:0 20px}
+  header{padding:64px 0 24px;text-align:center}
+  .eyebrow{color:var(--brand);font-weight:700;letter-spacing:.08em;text-transform:uppercase;font-size:13px}
+  h1{font-size:44px;margin:.2em 0 .1em;letter-spacing:-.02em}
+  .tag{color:var(--muted);font-size:19px;max-width:640px;margin:8px auto 0}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin:28px 0}
+  @media (max-width:760px){.grid{grid-template-columns:1fr}h1{font-size:34px}}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px}
+  .card h2{margin:0 0 8px;font-size:20px}
+  input,select{padding:9px 11px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);font-size:14px}
+  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+  .row input{flex:1;min-width:90px}
+  button{background:var(--brand);color:#fff;border:0;border-radius:10px;padding:9px 14px;font-size:14px;cursor:pointer}
+  .open{background:var(--accent);border-radius:12px;padding:16px;margin-bottom:12px}
+  .big{font-size:28px;font-weight:800;color:var(--brand-ink)}
+  .claim{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-top:1px dashed var(--line);font-size:14px}
+  .done{opacity:.5;text-decoration:line-through}
+  .mini{background:transparent;color:var(--brand);border:1px solid var(--line)}
+  footer{color:var(--muted);font-size:13px;text-align:center;padding:40px 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Wapasnama · वापस नामा</div>
+    <h1>Claims that don't get forgotten</h1>
+    <p class="tag">A verbal claim is raised, nobody diaries the follow-up, the credit note never lands.
+      Wapasnama logs every discrepancy against a supplier and shows what's still open.</p>
+  </header>
+  <div class="grid">
+    <div class="card">
+      <h2>Try it</h2>
+      <div class="open"><div>Open claims (awaiting credit note)</div><div class="big" id="open">₹0.00</div></div>
+      <div class="row">
+        <input id="sup" placeholder="Supplier">
+        <input id="amt" type="number" placeholder="₹ amount" style="max-width:110px">
+      </div>
+      <div class="row">
+        <input id="itm" placeholder="Item">
+        <select id="kind"><option>short</option><option>damaged</option><option>wrong-rate</option><option>missing-scheme</option></select>
+        <button onclick="add()">Log</button>
+      </div>
+      <div id="list"></div>
+    </div>
+    <div class="card">
+      <h2>Money that quietly leaks</h2>
+      <p style="color:var(--muted)">Every big khata app is sell-side. None track the purchase-side
+        claims you raise against a distributor — short quantity, damaged goods, a wrong rate, a
+        missing scheme discount. Those are near-weekly, and the credit note often lands short or never.</p>
+      <p style="color:var(--muted)">Wapasnama keeps the promised-vs-received tally so nothing slips.</p>
+      <p style="color:var(--muted);font-size:14px">Flutter → Go → PostgreSQL journal service
+        (POST /log, GET /summary).</p>
+    </div>
+  </div>
+  <footer>Wapasnama · a local-first shopkeeper tool · offline, no account.</footer>
+</div>
+<script>
+  const claims=[];
+  const inr=v=>'₹'+(isFinite(v)?v:0).toFixed(2);
+  function render(){
+    const open=claims.filter(c=>!c.received).reduce((s,c)=>s+c.amount,0);
+    document.getElementById('open').textContent=inr(open);
+    document.getElementById('list').innerHTML=claims.map((c,i)=>
+      `<div class="claim ${c.received?'done':''}"><span>${c.supplier} · ${c.item} · ${c.kind} · ${inr(c.amount)}</span>
+       <button class="mini" onclick="toggle(${i})">${c.received?'received ✓':'mark received'}</button></div>`).join('');
+  }
+  function add(){
+    const sup=document.getElementById('sup').value.trim();
+    const amt=+document.getElementById('amt').value||0;
+    if(!sup||amt<=0) return;
+    claims.unshift({supplier:sup, item:document.getElementById('itm').value.trim()||'—',
+      kind:document.getElementById('kind').value, amount:amt, received:false});
+    document.getElementById('sup').value=''; document.getElementById('itm').value=''; document.getElementById('amt').value='';
+    render();
+  }
+  function toggle(i){ claims[i].received=!claims[i].received; render(); }
+  render();
+</script>
+</body>
+</html>
